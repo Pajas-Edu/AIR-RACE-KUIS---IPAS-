@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>💧 AIR RACE KUIS 💧 – Iklim & Perubahannya</title>
+<style>
+/* =====================================================
+   AIR RACE KUIS – Gaya tampilan (biru laut, tosca, putih)
+   ===================================================== */
+:root{ --mid:clamp(230px,30vw,380px);
+  --navy:#0b3b6b; --sea:#0284c7; --sea2:#0ea5e9; --teal:#0d9488; --tosca:#2dd4bf;
+  --white:#fff; --ink:#0f2a43; --green:#22c55e; --red:#ef4444; --gold:#fbbf24;
+  --colA:#0284c7; --colB:#0d9488;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;color:var(--ink);
+  background:linear-gradient(160deg,#0369a1 0%,#0ea5e9 45%,#5eead4 100%);}
+button{font-family:inherit;cursor:pointer;border:none}
+.screen{display:none;position:fixed;inset:0;height:100dvh}
+.screen.active{display:flex}
+
+/* ---------- Halaman pembuka & setup ---------- */
+#intro,#setup,#end{align-items:center;justify-content:center;padding:16px;overflow:auto}
+.card{background:rgba(255,255,255,.95);border-radius:28px;box-shadow:0 20px 50px rgba(3,50,90,.35);
+  padding:clamp(18px,4vh,40px) clamp(20px,5vw,56px);text-align:center;max-width:860px;width:100%;position:relative;z-index:2}
+.card h1{font-size:clamp(34px,8vh,76px);line-height:1.05;color:var(--sea);letter-spacing:1px;
+  text-shadow:0 4px 0 #bae6fd}
+.card h2{font-size:clamp(18px,3.6vh,34px);color:var(--teal);margin:10px 0 6px}
+.card p{font-size:clamp(14px,2.4vh,22px);color:#31516e;margin:6px 0}
+.bigBtn{background:linear-gradient(180deg,#34d399,#0d9488);color:#fff;font-weight:900;
+  font-size:clamp(18px,3.4vh,32px);padding:clamp(12px,2vh,20px) clamp(24px,4vw,56px);border-radius:999px;
+  box-shadow:0 8px 0 #0f766e,0 14px 24px rgba(0,0,0,.25);margin-top:18px;transition:transform .12s}
+.bigBtn:hover{transform:translateY(-2px)} .bigBtn:active{transform:translateY(4px);box-shadow:0 4px 0 #0f766e}
+.bigBtn.alt{background:linear-gradient(180deg,#38bdf8,#0284c7);box-shadow:0 8px 0 #075985,0 14px 24px rgba(0,0,0,.25)}
+.bigBtn.alt:active{box-shadow:0 4px 0 #075985}
+.floaty{font-size:clamp(40px,9vh,90px);animation:floaty 2.2s ease-in-out infinite}
+@keyframes floaty{50%{transform:translateY(-10px) rotate(6deg)}}
+.bgDrops{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.bgDrops span{position:absolute;font-size:34px;opacity:.5;animation:fall linear infinite}
+@keyframes fall{from{transform:translateY(-60px)}to{transform:translateY(110vh)}}
+.fsBtn{position:fixed;left:14px;bottom:14px;width:52px;height:52px;border-radius:50%;background:#fff;font-size:26px;box-shadow:0 6px 16px rgba(0,0,0,.3);z-index:5}
+.devBtn{position:fixed;right:14px;bottom:14px;width:52px;height:52px;border-radius:50%;background:#fff;font-size:26px;
+  box-shadow:0 6px 16px rgba(0,0,0,.3);z-index:5}
+.devPop{position:fixed;right:14px;bottom:76px;background:#fff;border-radius:16px;padding:12px 18px;font-size:18px;
+  box-shadow:0 10px 24px rgba(0,0,0,.35);display:none;z-index:5;text-align:center;border:3px solid var(--tosca)}
+.devPop.show{display:block;animation:pop .3s}
+@keyframes pop{from{transform:scale(.6);opacity:0}}
+.field{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0}
+.field label{display:block;font-weight:900;font-size:clamp(14px,2.4vh,22px);margin-bottom:6px}
+.field input,.opt select{width:100%;font:inherit;font-size:clamp(16px,2.8vh,26px);padding:10px 14px;border-radius:14px;
+  border:3px solid #7dd3fc;text-align:center;outline:none}
+.field input:focus,.opt select:focus{border-color:var(--teal)}
+.fa label{color:var(--colA)} .fb label{color:var(--colB)}
+.opt{text-align:left;font-size:clamp(13px,2.2vh,19px);margin:10px 0;display:grid;gap:8px}
+.opt select{text-align:left;font-size:clamp(14px,2.3vh,20px);padding:8px 12px}
+.note{background:#ecfeff;border:2px dashed var(--tosca);border-radius:14px;padding:10px 14px;font-size:clamp(12px,2vh,17px);text-align:left;color:#134e4a}
+.btnRow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+/* ---------- Layar permainan ---------- */
+#game{flex-direction:column;gap:8px;padding:8px 10px}
+.topbar{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;flex:0 0 auto}
+.stat{background:rgba(255,255,255,.95);border-radius:18px;padding:6px 12px;border-left:8px solid var(--c);
+  display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 10px;transition:box-shadow .3s,transform .3s}
+.stat.B{border-left:none;border-right:8px solid var(--c);}
+.stat.lead{box-shadow:0 0 0 4px var(--gold),0 8px 20px rgba(0,0,0,.25);transform:translateY(-1px)}
+.stat .nm{font-weight:900;font-size:clamp(14px,2.8vh,26px);color:var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat .sc{font-weight:900;font-size:clamp(18px,3.6vh,34px);text-align:right}
+.stat .sub{font-size:clamp(11px,2vh,18px);font-weight:700;color:#41627f;grid-column:1/3;display:flex;gap:12px;flex-wrap:wrap}
+.center{background:rgba(255,255,255,.95);border-radius:18px;padding:6px 14px;text-align:center;width:var(--mid);
+  display:flex;flex-direction:column;justify-content:center;gap:2px}
+.timer{font-weight:900;font-size:clamp(20px,4.4vh,42px);font-variant-numeric:tabular-nums;color:var(--navy)}
+.leading{font-size:clamp(11px,2vh,18px);font-weight:800;color:#b45309;min-height:1.2em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctrls{display:flex;gap:6px;justify-content:center}
+.ctrls button{background:var(--sea);color:#fff;font-weight:800;border-radius:12px;padding:4px 10px;font-size:clamp(11px,2vh,17px)}
+.ctrls button.r{background:#f97316} .ctrls button.g{background:#64748b}
+.ctrls button:disabled{opacity:.45;cursor:not-allowed}
+
+.arena{flex:1 1 0;min-height:0;display:grid;grid-template-columns:1fr var(--mid) 1fr;gap:10px}
+.mid{display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:0;background:rgba(255,255,255,.88);border-radius:22px;padding:8px 12px;border-top:8px solid var(--tosca)}
+.tkName{font-weight:900;font-size:clamp(12px,2.3vh,20px);text-align:center;color:var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lane{background:rgba(255,255,255,.88);border-radius:22px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;min-height:0;
+  border-top:8px solid var(--c);position:relative}
+.laneHead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:0 0 auto}
+.laneName{font-weight:900;font-size:clamp(16px,3.2vh,30px);color:var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.laneLv{font-weight:900;font-size:clamp(14px,2.8vh,26px);background:var(--c);color:#fff;border-radius:999px;padding:2px 14px;white-space:nowrap}
+.laneBody{flex:1 1 0;min-height:0;display:grid;grid-template-columns:1fr;gap:10px}
+
+/* Tandon air */
+.tankCol{display:flex;flex-direction:column;gap:6px;min-height:0}
+.tankWrap{flex:1 1 0;min-height:0;position:relative;padding-top:10px}
+.tank{position:absolute;left:14px;right:6px;top:10px;bottom:0;border:5px solid rgba(255,255,255,.95);border-radius:14px 14px 22px 22px;
+  background:linear-gradient(90deg,rgba(186,230,253,.55),rgba(255,255,255,.35) 40%,rgba(186,230,253,.55));
+  box-shadow:inset 0 0 0 3px #7dd3fc,0 8px 18px rgba(3,60,100,.3);overflow:visible}
+.tank::after{content:"";position:absolute;left:12%;top:6%;width:9%;height:70%;border-radius:999px;background:rgba(255,255,255,.55);pointer-events:none}
+.water{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,rgba(14,165,233,.9),rgba(3,105,161,.95));
+  transition:height .9s cubic-bezier(.3,1.4,.5,1);border-radius:0 0 14px 14px}
+.water::before{content:"";position:absolute;left:0;right:0;bottom:calc(100% - 1px);height:10px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='10' viewBox='0 0 44 10'%3E%3Cpath d='M0 5 Q11 -3 22 5 T44 5 V10 H0Z' fill='%230ea5e9' fill-opacity='.9'/%3E%3C/svg%3E") repeat-x;
+  background-size:44px 10px;animation:waveMove 1.6s linear infinite}
+.water[data-l="0"]::before{display:none}
+@keyframes waveMove{to{background-position-x:44px}}
+.fill{position:absolute;inset:0;overflow:hidden;border-radius:0 0 14px 14px}
+.bub{position:absolute;bottom:-12px;border-radius:50%;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.9);
+  animation:bubUp 1.4s ease-in forwards}
+@keyframes bubUp{to{bottom:105%;opacity:0}}
+.marks{position:absolute;inset:0;pointer-events:none;z-index:2}
+.mark{position:absolute;left:0;right:0;border-top:2px dashed rgba(3,60,100,.45)}
+.mark b{position:absolute;right:3px;top:-1px;font-size:clamp(9px,1.9vh,15px);color:var(--navy);background:rgba(255,255,255,.75);border-radius:6px;padding:0 4px;line-height:1.2}
+.mark.top{border-top:3px solid var(--red)} .mark.top b{background:var(--red);color:#fff}
+.spill{position:absolute;left:-6px;right:-6px;top:-8px;height:14px;display:none;z-index:3;justify-content:space-around;font-size:18px}
+.tankWrap.full .spill{display:flex;animation:spill .7s ease-in-out infinite alternate}
+.tankWrap.full .tank{box-shadow:inset 0 0 0 3px #7dd3fc,0 0 0 5px var(--gold),0 0 26px 8px rgba(251,191,36,.8)}
+@keyframes spill{to{transform:translateY(8px)}}
+.tankWrap.rise .tank{animation:wob .6s}
+@keyframes wob{25%{transform:rotate(-1.5deg)}60%{transform:rotate(1.5deg)}}
+.prog{flex:0 0 auto;height:clamp(18px,3.2vh,30px);border-radius:999px;background:#dbeafe;border:3px solid #fff;position:relative;overflow:hidden;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.2)}
+.prog .bar{height:100%;width:0;background:linear-gradient(90deg,var(--tosca),var(--c));transition:width .9s ease;border-radius:999px}
+.prog span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:clamp(11px,2vh,17px);color:var(--navy)}
+
+/* Soal & jawaban */
+.qcol{display:flex;flex-direction:column;gap:8px;min-height:0;position:relative}
+.qbox{flex:0 0 auto;background:#fff;border:3px solid var(--c);border-radius:16px;padding:8px 12px;
+  display:flex;flex-direction:column;gap:3px;justify-content:center;min-height:22%}
+.cat{font-size:clamp(10px,1.8vh,15px);font-weight:900;color:#fff;background:var(--c);border-radius:999px;padding:1px 10px;align-self:flex-start}
+.qt{font-weight:800;font-size:clamp(14px,2.7vh,26px);line-height:1.25}
+.answers{flex:1 1 0;min-height:0;display:grid;grid-template-rows:repeat(4,minmax(0,1fr));gap:7px}
+.ans{display:flex;align-items:center;gap:10px;text-align:left;background:#fff;color:var(--ink);border:3px solid #bae6fd;border-radius:14px;
+  padding:2px 10px;font-weight:800;font-size:clamp(13px,2.5vh,24px);box-shadow:0 4px 0 #bae6fd;transition:transform .1s,background .15s;min-height:0}
+.ans:hover:not(:disabled){background:#f0f9ff;transform:translateY(-1px)}
+.ans:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #bae6fd}
+.ans .key{flex:0 0 auto;width:clamp(26px,4.6vh,42px);height:clamp(26px,4.6vh,42px);border-radius:50%;background:var(--c);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:900}
+.ans .atxt{flex:1;line-height:1.15}
+.ans .hint{flex:0 0 auto;font-size:clamp(9px,1.6vh,13px);background:#e2e8f0;border-radius:6px;padding:1px 6px;color:#475569}
+body.nokeys .ans .hint{display:none}
+.ans:disabled{cursor:default}
+.ans.correct{background:var(--green);border-color:#15803d;color:#fff;box-shadow:0 4px 0 #15803d;animation:pulse .5s}
+.ans.wrong{background:var(--red);border-color:#b91c1c;color:#fff;box-shadow:0 4px 0 #b91c1c;animation:shake .45s}
+.ans.reveal{background:#bbf7d0;border-color:var(--green);box-shadow:0 4px 0 #15803d;animation:pulse .5s}
+.ans.dead{opacity:.45}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@keyframes pulse{50%{transform:scale(1.04)}}
+.fbMsg{position:absolute;left:0;right:0;top:38%;text-align:center;font-weight:900;font-size:clamp(28px,7vh,68px);pointer-events:none;opacity:0;z-index:6;
+  text-shadow:0 4px 0 rgba(0,0,0,.25),0 0 16px #fff}
+.fbMsg.ok{color:#16a34a} .fbMsg.no{color:#dc2626}
+.fbMsg.show{animation:fbPop 1s ease-out}
+@keyframes fbPop{0%{opacity:0;transform:scale(.4)}20%{opacity:1;transform:scale(1.15)}70%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1) translateY(-20px)}}
+
+/* Overlay (siap / hitung mundur / jeda) */
+#overlay{position:fixed;inset:0;background:rgba(3,60,100,.72);display:none;align-items:center;justify-content:center;z-index:20;flex-direction:column;gap:12px;text-align:center;color:#fff;padding:20px}
+#overlay.show{display:flex}
+#overlay .big{font-size:clamp(70px,24vh,220px);font-weight:900;text-shadow:0 8px 0 rgba(0,0,0,.3);animation:cd .8s ease-out}
+@keyframes cd{from{transform:scale(2.2);opacity:0}to{transform:scale(1);opacity:1}}
+#overlay h2{font-size:clamp(28px,6vh,56px)}
+#overlay p{font-size:clamp(14px,2.6vh,22px);max-width:760px}
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+
+/* ---------- Halaman akhir ---------- */
+#end .card{max-width:980px}
+.trophy{font-size:clamp(50px,12vh,110px);animation:floaty 1.6s ease-in-out infinite}
+.winner{font-size:clamp(28px,7vh,64px);font-weight:900;color:var(--sea);text-shadow:0 3px 0 #bae6fd}
+table.res{width:100%;border-collapse:separate;border-spacing:0 6px;margin:10px 0;font-size:clamp(13px,2.5vh,22px)}
+.res th,.res td{padding:8px 10px;background:#f0f9ff}
+.res th{color:#fff}
+.res th.a{background:var(--colA);border-radius:14px 14px 0 0} .res th.b{background:var(--colB);border-radius:14px 14px 0 0}
+.res td:first-child{font-weight:900;text-align:left;border-radius:12px 0 0 12px}
+.res td:last-child{border-radius:0 12px 12px 0}
+.res tr.win td{background:#fef9c3}
+.motiv{background:#ecfeff;border:3px dashed var(--tosca);border-radius:18px;padding:10px 16px;font-weight:800;font-size:clamp(14px,2.6vh,22px);color:#115e59;margin:8px 0}
+
+@media (max-width:760px){
+  :root{--mid:150px}.arena{gap:6px}.stat .sub{gap:6px}.center{min-width:150px}
+  .topbar{grid-template-columns:1fr 1fr}.center{grid-column:1/3;order:-1}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= HALAMAN PEMBUKA ================= -->
+<section id="intro" class="screen active">
+  <div class="bgDrops" id="bgDrops"></div>
+ <button class="fsBtn" id="fsIntro" title="Layar penuh" aria-label="Layar penuh">⛶</button>
+  <button class="devBtn" id="devBtn" title="Pengembang" aria-label="Info pengembang">ℹ️</button>
+  <div class="devPop" id="devPop">👨‍🏫 Pengembang<br><b>Jasrin R. Nupura, S.Pd</b></div>
+  <div class="card">
+    <div class="floaty">💧</div>
+    <h1>AIR RACE KUIS</h1>
+    <h2>🌦️ IKLIM &amp; PERUBAHANNYA 🌦️</h2>
+    <p>Balapan isi tandon air! Jawab soal perubahan wujud benda dengan benar dan cepat.<br>Siapa yang lebih dulu <b>meluapkan tandon</b>, dialah juaranya! 🏆</p>
+    <button class="bigBtn" id="btnStart">🏁 MULAI BALAPAN</button>
+  </div>
+</section>
+
+<!-- ================= INPUT NAMA PEMAIN / TIM ================= -->
+<section id="setup" class="screen">
+  <div class="card">
+    <h2 style="font-size:clamp(24px,5vh,44px);color:var(--sea);margin-top:0">👥 Siapa yang Bertanding?</h2>
+    <div class="field">
+      <div class="fa"><label for="nameA">🔵 Pemain / Tim A</label><input id="nameA" maxlength="18" placeholder="Tim A" autocomplete="off"></div>
+      <div class="fb"><label for="nameB">🟢 Pemain / Tim B</label><input id="nameB" maxlength="18" placeholder="Tim B" autocomplete="off"></div>
+    </div>
+    <div class="opt">
+      <label><b>Jika jawaban salah:</b>
+        <select id="wrongMode">
+          <option value="ulang">Soal yang sama diulang sampai benar (kunci 1,2 detik)</option>
+          <option value="lanjut">Jawaban benar ditunjukkan, lalu lanjut ke soal berikutnya</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="useKeys" checked> Aktifkan keyboard untuk mode 1 layar (2 pemain berbagi satu perangkat)</label>
+    </div>
+    <div class="note">
+      🖥️ <b>Mode 1 layar:</b> layar tetap dibagi dua berdampingan agar mudah dipantau guru. Klik/sentuh jawaban di kolomnya masing-masing, atau pakai keyboard —
+      <b>Tim A: Q W E R</b> (= A B C D) dan <b>Tim B: 1 2 3 4</b> (= A B C D).
+    </div>
+    <div class="btnRow">
+      <button class="bigBtn alt" id="btnBack">⬅️ Kembali</button>
+      <button class="bigBtn" id="btnEnter">🚰 MASUK ARENA</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LAYAR PERMAINAN ================= -->
+<section id="game" class="screen">
+  <div class="topbar">
+    <div class="stat A" id="stA" style="--c:var(--colA)">
+      <div class="nm" id="snA">Tim A</div><div class="sc" id="scA">0</div>
+      <div class="sub"><span id="lvA">Level 0/10</span><span id="okA">✅ 0</span><span id="noA">❌ 0</span></div>
+    </div>
+    <div class="center">
+      <div class="timer" id="timer">⏱ 00:00.0</div>
+      <div class="leading" id="leading">⚖️ Belum ada yang memimpin</div>
+      <div class="ctrls">
+        <button id="btnPause" disabled>⏸ Jeda</button>
+        <button id="btnReset" class="r">🔄 Reset</button>
+        <button id="btnMute" class="g" title="Suara">🔊</button>
+        <button id="btnFull" class="g" title="Layar penuh">⛶</button>
+        <button id="btnMenu" class="g" title="Ubah nama / menu">🏠</button>
+      </div>
+    </div>
+    <div class="stat B" id="stB" style="--c:var(--colB)">
+      <div class="nm" id="snB">Tim B</div><div class="sc" id="scB">0</div>
+      <div class="sub"><span id="lvB">Level 0/10</span><span id="okB">✅ 0</span><span id="noB">❌ 0</span></div>
+    </div>
+  </div>
+  <div class="arena">
+    <div class="lane" id="lane0" style="--c:var(--colA)"></div>
+    <div class="mid">
+      <div class="tankCol" id="tk0" style="--c:var(--colA)"></div>
+      <div class="tankCol" id="tk1" style="--c:var(--colB)"></div>
+    </div>
+    <div class="lane" id="lane1" style="--c:var(--colB)"></div>
+  </div>
+</section>
+
+<!-- ================= HALAMAN AKHIR ================= -->
+<section id="end" class="screen">
+  <div class="card">
+    <div class="trophy" id="trophy">🏆</div>
+    <div class="winner" id="winnerName">Pemenang</div>
+    <p id="winnerSub" style="font-weight:800"></p>
+    <table class="res" id="resTable"></table>
+    <div class="motiv" id="motiv"></div>
+    <div class="btnRow">
+      <button class="bigBtn" id="btnAgain">🔁 BALAP LAGI</button>
+      <button class="bigBtn alt" id="btnRename">👥 Ganti Nama</button>
+    </div>
+  </div>
+</section>
+
+<div id="overlay"></div>
+<canvas id="confetti"></canvas>
+
+<script>
+/* =====================================================================
+   BANK SOAL  ←←← GURU: EDIT SOAL DI SINI (satu-satunya tempat data soal)
+   ---------------------------------------------------------------------
+   Format tiap soal:
+   { kategori: "Subtopik",
+     soal: "Teks pertanyaan",
+     pilihan: ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D"],   // harus 4 pilihan
+     jawaban: 0 }   // nomor pilihan yang benar: 0 = A, 1 = B, 2 = C, 3 = D
+   Urutan soal diacak otomatis setiap permainan dimulai.
+   Posisi pilihan juga diacak berbeda di kolom kiri dan kanan.
+   ===================================================================== */
+const BANK_SOAL = [
+  // ---- 1. Pengertian perubahan wujud benda ----
+  { kategori:"Pengertian", soal:"Perubahan wujud benda adalah ...",
+    pilihan:["berubahnya benda dari satu wujud ke wujud lain, misalnya padat menjadi cair","hilangnya benda untuk selamanya","bertambah banyaknya jumlah benda","berubahnya warna benda saja"], jawaban:0 },
+  { kategori:"Pengertian", soal:"Tiga wujud benda adalah ...",
+    pilihan:["panas, hangat, dingin","padat, cair, gas","besar, sedang, kecil","keras, lunak, licin"], jawaban:1 },
+  { kategori:"Pengertian", soal:"Manakah yang termasuk benda padat?",
+    pilihan:["Air","Minyak goreng","Uap air","Batu"], jawaban:3 },
+  { kategori:"Pengertian", soal:"Wujud uap air yang keluar dari panci mendidih adalah ...",
+    pilihan:["padat","gas","cair","kristal"], jawaban:1 },
+
+  // ---- 2. Mencair dan membeku ----
+  { kategori:"Mencair", soal:"Es batu dibiarkan di tempat yang panas, lalu berubah menjadi air. Peristiwa ini disebut ...",
+    pilihan:["membeku","mengembun","mencair","menguap"], jawaban:2 },
+  { kategori:"Mencair", soal:"Mencair adalah perubahan wujud dari ...",
+    pilihan:["cair menjadi padat","padat menjadi cair","cair menjadi gas","gas menjadi cair"], jawaban:1 },
+  { kategori:"Membeku", soal:"Air dimasukkan ke dalam freezer hingga menjadi es batu. Peristiwa ini disebut ...",
+    pilihan:["membeku","mencair","menguap","menyublim"], jawaban:0 },
+  { kategori:"Membeku", soal:"Membeku adalah perubahan wujud dari ...",
+    pilihan:["padat menjadi cair","gas menjadi cair","cair menjadi padat","padat menjadi gas"], jawaban:2 },
+  { kategori:"Mencair", soal:"Mentega di atas wajan panas menjadi cair. Mentega mengalami peristiwa ...",
+    pilihan:["membeku","mengembun","mengkristal","mencair"], jawaban:3 },
+  { kategori:"Membeku", soal:"Lilin yang meleleh akan mengeras kembali saat dingin. Peristiwa mengeras ini disebut ...",
+    pilihan:["menguap","membeku","menyublim","mengembun"], jawaban:1 },
+
+  // ---- 3. Menguap dan mengembun ----
+  { kategori:"Menguap", soal:"Air di dalam panci yang direbus lama-kelamaan berkurang karena air ...",
+    pilihan:["membeku","mengembun","menguap","mengkristal"], jawaban:2 },
+  { kategori:"Menguap", soal:"Menguap adalah perubahan wujud dari ...",
+    pilihan:["cair menjadi gas","gas menjadi cair","padat menjadi cair","cair menjadi padat"], jawaban:0 },
+  { kategori:"Mengembun", soal:"Titik-titik air di luar gelas berisi es teh terjadi karena peristiwa ...",
+    pilihan:["menguap","mencair","membeku","mengembun"], jawaban:3 },
+  { kategori:"Mengembun", soal:"Mengembun adalah perubahan wujud dari ...",
+    pilihan:["padat menjadi gas","gas menjadi cair","cair menjadi padat","cair menjadi gas"], jawaban:1 },
+  { kategori:"Mengembun", soal:"Embun pada daun di pagi hari terjadi karena uap air di udara menjadi ...",
+    pilihan:["panas lalu menguap","padat lalu mencair","dingin lalu mengembun","gas lalu menyublim"], jawaban:2 },
+  { kategori:"Iklim", soal:"Uap air di langit berubah menjadi titik-titik air kecil dan membentuk awan. Peristiwa ini disebut ...",
+    pilihan:["mengembun","menguap","membeku","mencair"], jawaban:0 },
+
+  // ---- 4. Menyublim dan mengkristal ----
+  { kategori:"Menyublim", soal:"Kapur barus di dalam lemari lama-kelamaan mengecil lalu habis tanpa menjadi cair. Peristiwa ini disebut ...",
+    pilihan:["mencair","mengembun","menyublim","membeku"], jawaban:2 },
+  { kategori:"Menyublim", soal:"Menyublim adalah perubahan wujud dari ...",
+    pilihan:["cair menjadi padat","padat langsung menjadi gas","gas menjadi cair","gas langsung menjadi padat"], jawaban:1 },
+  { kategori:"Mengkristal", soal:"Mengkristal adalah perubahan wujud dari ...",
+    pilihan:["gas langsung menjadi padat","padat menjadi cair","cair menjadi gas","padat langsung menjadi gas"], jawaban:0 },
+  { kategori:"Mengkristal", soal:"Bunga es (kristal es) di jendela saat udara sangat dingin adalah contoh peristiwa ...",
+    pilihan:["menguap","mencair","menyublim","mengkristal"], jawaban:3 },
+
+  // ---- 5. Contoh perubahan wujud dalam kehidupan sehari-hari ----
+  { kategori:"Sehari-hari", soal:"Pakaian basah yang dijemur menjadi kering karena air pada pakaian ...",
+    pilihan:["menguap","membeku","mengembun","mengkristal"], jawaban:0 },
+  { kategori:"Sehari-hari", soal:"Agar-agar cair dimasukkan ke kulkas sehingga menjadi padat. Ini contoh peristiwa ...",
+    pilihan:["menguap","mencair","membeku","menyublim"], jawaban:2 },
+  { kategori:"Sehari-hari", soal:"Es krim yang meleleh di bawah terik matahari adalah contoh peristiwa ...",
+    pilihan:["mencair","membeku","mengembun","menyublim"], jawaban:0 },
+  { kategori:"Sehari-hari", soal:"Urutan perubahan wujud air dari es sampai menjadi uap adalah es → air → uap. Perubahannya adalah ...",
+    pilihan:["membeku lalu menguap","mencair lalu menguap","menguap lalu mencair","mengembun lalu membeku"], jawaban:1 },
+
+  // ---- 6. Faktor penyebab perubahan wujud benda ----
+  { kategori:"Faktor Penyebab", soal:"Faktor utama yang menyebabkan es mencair adalah ...",
+    pilihan:["suhu naik (pemanasan)","suhu turun (pendinginan)","benda diaduk","benda ditimbang"], jawaban:0 },
+  { kategori:"Faktor Penyebab", soal:"Air berubah menjadi es karena suhunya ...",
+    pilihan:["dinaikkan","diturunkan","dibiarkan tetap","diaduk cepat"], jawaban:1 },
+  { kategori:"Faktor Penyebab", soal:"Pakaian lebih cepat kering saat dijemur pada cuaca ...",
+    pilihan:["mendung dan hujan","gelap dan dingin","panas dan terik","berkabut tebal"], jawaban:2 },
+  { kategori:"Faktor Penyebab", soal:"Air membeku menjadi es pada suhu sekitar ...",
+    pilihan:["100 °C","50 °C","25 °C","0 °C"], jawaban:3 }
+];
+
+/* =====================================================================
+   PENGATURAN PERMAINAN
+   ===================================================================== */
+const TARGET_LEVEL   = 10;   // jumlah level untuk menang
+const POIN_PER_SOAL  = 10;   // poin tiap jawaban benar
+const LETTERS = ["A","B","C","D"];
+const KEYS = [["Q","W","E","R"],["1","2","3","4"]];   // keyboard: Tim A, Tim B
+const PESAN_MOTIVASI = [
+  "Hebat! Terus semangat belajar, setiap soal membuat otakmu makin tajam! 💪",
+  "Kalah atau menang, kalian sama-sama keren. Yang penting kita belajar bersama! 🌟",
+  "Seperti air yang terus mengalir, semangat belajarmu pun tak boleh berhenti! 💧",
+  "Tidak apa-apa salah, dari kesalahan kita jadi pintar. Ayo coba lagi! 🚀",
+  "Kerja keras dan teliti adalah kunci juara. Kalian luar biasa! 🏅"
+];
+
+/* =====================================================================
+   UTILITAS
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,"0");
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function fmt(ms){ const m=Math.floor(ms/60000), s=Math.floor(ms/1000)%60, t=Math.floor(ms/100)%10; return `${pad(m)}:${pad(s)}.${t}`; }
+function showScreen(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("active", s.id===id)); }
+
+/* =====================================================================
+   EFEK SUARA (Web Audio API – tanpa file audio)
+   ===================================================================== */
+let AC=null, muted=false;
+function ac(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(AC&&AC.state==="suspended") AC.resume(); return AC; }
+function tone(f,d,type="sine",v=.2,delay=0,f2){
+  if(muted) return; const a=ac(); if(!a) return; const t=a.currentTime+delay;
+  const o=a.createOscillator(), g=a.createGain(); o.type=type; o.frequency.setValueAtTime(f,t);
+  if(f2) o.frequency.exponentialRampToValueAtTime(f2,t+d);
+  g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(v,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+d+.05);
+}
+const SFX = {
+  tick(){ tone(660,.18,"square",.12); },
+  go(){ tone(990,.5,"square",.15); tone(1320,.5,"triangle",.1,.05); },
+  correct(){ [523,659,784,1046].forEach((f,i)=>tone(f,.18,"triangle",.22,i*.08)); },
+  wrong(){ tone(220,.35,"sawtooth",.18,0,110); tone(165,.35,"square",.1,.1,90); },
+  rise(){ tone(300,.5,"sine",.2,.1,800); tone(450,.4,"sine",.1,.2,1000); },
+  win(){ [523,659,784,1046,784,1046,1318].forEach((f,i)=>tone(f,.28,"triangle",.25,i*.14)); tone(1568,.9,"sine",.2,1); }
+};
+
+/* =====================================================================
+   KONFETI
+   ===================================================================== */
+const cv=$("#confetti"), cx=cv.getContext("2d"); let parts=[], cfRun=false;
+function burst(n){
+  cv.width=innerWidth; cv.height=innerHeight;
+  const cols=["#fbbf24","#22d3ee","#34d399","#f472b6","#60a5fa","#fb923c","#ffffff"];
+  for(let i=0;i<n;i++) parts.push({x:Math.random()*cv.width,y:-20,vx:(Math.random()-.5)*5,vy:Math.random()*4+2,s:Math.random()*9+5,
+    c:cols[Math.floor(Math.random()*cols.length)],r:Math.random()*6,vr:(Math.random()-.5)*.3});
+  if(!cfRun){ cfRun=true; requestAnimationFrame(cfLoop); }
+}
+function cfLoop(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  parts=parts.filter(p=>p.y<cv.height+30);
+  for(const p of parts){ p.x+=p.vx; p.y+=p.vy; p.r+=p.vr; p.vy+=.03; cx.save(); cx.translate(p.x,p.y); cx.rotate(p.r); cx.fillStyle=p.c; cx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); cx.restore(); }
+  if(parts.length) requestAnimationFrame(cfLoop); else { cfRun=false; cx.clearRect(0,0,cv.width,cv.height); }
+}
+function confettiShow(){ let k=0; const iv=setInterval(()=>{ burst(45); if(++k>=7) clearInterval(iv); },500); }
+
+/* =====================================================================
+   MEMBANGUN KOLOM / JALUR PEMAIN (dibuat lewat JS agar kolom kiri & kanan identik)
+   ===================================================================== */
+function buildLane(i){
+  $("#lane"+i).innerHTML = `
+    <div class="laneHead"><span class="laneName" id="ln${i}"></span><span class="laneLv" id="llv${i}">Level 0/10</span></div>
+    <div class="laneBody">
+      <div class="qcol">
+        <div class="qbox"><span class="cat" id="cat${i}">Siap?</span><div class="qt" id="qt${i}">Tekan MULAI BALAPAN…</div></div>
+        <div class="answers" id="an${i}"></div>
+        <div class="fbMsg" id="fb${i}"></div>
+      </div>
+    </div>`;
+  // Tandon A dan B diletakkan berdampingan di tengah layar (di bawah indikator waktu)
+  $("#tk"+i).innerHTML = `
+    <div class="tkName" id="tn${i}"></div>
+    <div class="tankWrap" id="tw${i}">
+      <div class="spill"><span>💦</span><span>💦</span><span>💦</span></div>
+      <div class="tank">
+        <div class="water" id="wt${i}" data-l="0"><div class="fill" id="fl${i}"></div></div>
+        <div class="marks" id="mk${i}"></div>
+      </div>
+    </div>
+    <div class="prog"><div class="bar" id="bar${i}"></div><span id="pg${i}">0%</span></div>`;
+  // 10 garis takar (level 1 – 10) dari dasar sampai puncak
+  const mk=$("#mk"+i);
+  for(let l=1;l<=TARGET_LEVEL;l++){
+    const m=document.createElement("div"); m.className="mark"+(l===TARGET_LEVEL?" top":"");
+    m.style.bottom=(l/TARGET_LEVEL*100)+"%"; m.innerHTML=`<b>${l===TARGET_LEVEL?"🏁 ":""}${l}</b>`;
+    // garis puncak diletakkan sedikit di dalam agar tidak terpotong
+    if(l===TARGET_LEVEL) m.style.bottom="calc(100% - 3px)";
+    mk.appendChild(m);
+  }
+}
+buildLane(0); buildLane(1);
+
+/* =====================================================================
+   STATE PERMAINAN
+   ===================================================================== */
+let G = null;          // data permainan berjalan
+let NAMES = ["Tim A","Tim B"];
+let CFG = { wrongMode:"ulang", useKeys:true };
+let gameCounter = 0;
+
+function newGame(){
+  gameCounter++;
+  const orders=makeOrders();
+  G = { id:gameCounter, state:"ready", elapsed:0, last:0, winner:null,
+        teams:[0,1].map(i=>({i,name:NAMES[i],qs:orders[i],level:0,score:0,benar:0,salah:0,qi:0,perm:[0,1,2,3],locked:true,finishAt:null})) };
+  for(let i=0;i<2;i++){
+    buildLane(i);
+    $("#ln"+i).textContent = (i===0?"🔵 ":"🟢 ")+NAMES[i];
+    $("#tn"+i).textContent = NAMES[i];
+  }
+  $("#snA").textContent=NAMES[0]; $("#snB").textContent=NAMES[1];
+  $("#btnPause").disabled=true; $("#btnPause").textContent="⏸ Jeda";
+  $("#timer").textContent="⏱ 00:00.0";
+  refresh();
+  showOverlay(`<h2>🚰 Siap Balapan?</h2><p><b>${esc(NAMES[0])}</b> 🆚 <b>${esc(NAMES[1])}</b><br>Kedua tim menjawab <b>bersamaan</b>, dengan soal yang diacak berbeda untuk tiap tim. Tandon yang lebih dulu terisi penuh sampai level ${TARGET_LEVEL} adalah pemenangnya!</p>
+    <button class="bigBtn" id="ovStart">🏁 MULAI BALAPAN</button>`);
+  $("#ovStart").onclick=startCountdown;
+}
+/* Urutan soal Tim A & Tim B diacak TERPISAH, dan dijaga agar pada nomor urut yang sama
+   kedua tim tidak pernah mendapat soal yang sama (mencegah menyontek). */
+function makeOrders(){
+  const a=shuffle(BANK_SOAL), b=shuffle(BANK_SOAL), n=a.length;
+  for(let k=0;k<n;k++){
+    if(a[k]===b[k]){ const j=(k+1)%n; [b[k],b[j]]=[b[j],b[k]]; }
+  }
+  for(let k=0;k<n;k++){ if(a[k]===b[k]){ const j=(k+2)%n; [b[k],b[j]]=[b[j],b[k]]; } }
+  return [a,b];
+}
+function currentQ(T){ if(T.qi>=T.qs.length){ T.qs=shuffle(BANK_SOAL); T.qi=0; } return T.qs[T.qi]; }
+function esc(s){ return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function showOverlay(html){ const o=$("#overlay"); o.innerHTML=html; o.classList.add("show"); }
+function hideOverlay(){ $("#overlay").classList.remove("show"); }
+
+/* ---------- Hitung mundur 3-2-1 lalu mulai ---------- */
+function startCountdown(){
+  ac(); const id=G.id; G.state="countdown";
+  let n=3;
+  const step=()=>{
+    if(!G||G.id!==id) return;
+    if(n>0){ showOverlay(`<div class="big">${n}</div>`); SFX.tick(); n--; setTimeout(step,850); }
+    else { showOverlay(`<div class="big" style="color:#fde047">GO!</div>`); SFX.go(); setTimeout(()=>{ if(G.id!==id) return; hideOverlay(); beginPlay(); },600); }
+  };
+  step();
+}
+function beginPlay(){
+  G.state="playing"; G.elapsed=0; G.last=performance.now();
+  $("#btnPause").disabled=false;
+  renderQuestion(0); renderQuestion(1);
+}
+
+/* ---------- Stopwatch (berhenti saat jeda / selesai) ---------- */
+function frame(){
+  const now=performance.now();
+  if(G && G.state==="playing"){ G.elapsed+=Math.max(0,now-G.last); $("#timer").textContent="⏱ "+fmt(G.elapsed); }
+  if(G) G.last=now;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- Tampilkan soal untuk satu tim ---------- */
+function renderQuestion(i){
+  const T=G.teams[i], q=currentQ(T);
+  T.perm=shuffle([0,1,2,3]);            // posisi pilihan diacak per kolom
+  $("#cat"+i).textContent=q.kategori;
+  $("#qt"+i).textContent=q.soal;
+  const box=$("#an"+i); box.innerHTML="";
+  T.perm.forEach((orig,pos)=>{
+    const b=document.createElement("button"); b.className="ans";
+    b.innerHTML=`<span class="key">${LETTERS[pos]}</span><span class="atxt"></span><span class="hint">${KEYS[i][pos]}</span>`;
+    b.querySelector(".atxt").textContent=q.pilihan[orig];
+    b.addEventListener("click",()=>answer(i,pos));
+    box.appendChild(b);
+  });
+  T.locked=false;
+}
+
+/* ---------- Memproses jawaban ---------- */
+function answer(i,pos){
+  if(!G||G.state!=="playing") return;
+  const T=G.teams[i]; if(T.locked) return;
+  T.locked=true;                         // cegah klik ganda
+  const id=G.id, q=currentQ(T), orig=T.perm[pos];
+  const btns=[...$("#an"+i).children], btn=btns[pos];
+  btns.forEach(b=>b.disabled=true);
+
+  if(orig===q.jawaban){                  // ===== JAWABAN BENAR =====
+    btn.classList.add("correct");
+    T.benar++; T.score+=POIN_PER_SOAL; T.level++;
+    SFX.correct(); setTimeout(SFX.rise,250);
+    flash(i,true); updateTank(i,true); refresh();
+    if(T.level>=TARGET_LEVEL){ T.finishAt=G.elapsed; finishGame(i); return; }
+    setTimeout(()=>{ if(!G||G.id!==id||G.state==="ended") return; T.qi++; renderQuestion(i); },900);
+  } else {                               // ===== JAWABAN SALAH =====
+    btn.classList.add("wrong"); T.salah++;
+    SFX.wrong(); flash(i,false); refresh();
+    if(CFG.wrongMode==="lanjut"){
+      // tunjukkan jawaban benar, lalu pindah ke soal berikutnya
+      setTimeout(()=>{ if(!G||G.id!==id) return; const c=btns[T.perm.indexOf(q.jawaban)]; if(c) c.classList.add("reveal"); },1000);
+      setTimeout(()=>{ if(!G||G.id!==id||G.state==="ended") return; T.qi++; renderQuestion(i); },2300);
+    } else {
+      // soal yang sama diulang; tombol salah tetap merah & nonaktif
+      setTimeout(()=>{ if(!G||G.id!==id||G.state==="ended") return;
+        btns.forEach(b=>{ if(!b.classList.contains("wrong")) b.disabled=false; else b.classList.add("dead"); });
+        T.locked=false; },1200);
+    }
+  }
+}
+
+/* ---------- Teks ✅ BENAR / ❌ SALAH ---------- */
+function flash(i,ok){
+  const f=$("#fb"+i); f.className="fbMsg "+(ok?"ok":"no"); f.textContent=ok?"✅ BENAR!":"❌ SALAH";
+  void f.offsetWidth; f.classList.add("show");
+}
+
+/* ---------- Tandon air naik 1 level ---------- */
+function updateTank(i,animate){
+  const T=G.teams[i], pct=Math.round(T.level/TARGET_LEVEL*100);
+  const w=$("#wt"+i); w.style.height=pct+"%"; w.dataset.l=T.level;
+  $("#bar"+i).style.width=pct+"%"; $("#pg"+i).textContent=pct+"%";
+  if(animate){
+    bubbles(i); const tw=$("#tw"+i); tw.classList.remove("rise"); void tw.offsetWidth; tw.classList.add("rise");
+  }
+  $("#tw"+i).classList.toggle("full",T.level>=TARGET_LEVEL);
+}
+function bubbles(i){
+  const f=$("#fl"+i);
+  for(let k=0;k<16;k++){
+    const b=document.createElement("i"), s=4+Math.random()*11; b.className="bub";
+    b.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*88}%;animation-delay:${Math.random()*.6}s;animation-duration:${.9+Math.random()*.9}s`;
+    f.appendChild(b); setTimeout(()=>b.remove(),2400);
+  }
+}
+
+/* ---------- Papan skor ---------- */
+function refresh(){
+  const [A,B]=G.teams;
+  [["A",A],["B",B]].forEach(([k,T])=>{
+    $("#sc"+k).textContent=T.score; $("#lv"+k).textContent=`Level ${T.level}/${TARGET_LEVEL}`;
+    $("#ok"+k).textContent="✅ "+T.benar; $("#no"+k).textContent="❌ "+T.salah;
+    $("#llv"+T.i).textContent=`Level ${T.level}/${TARGET_LEVEL}`;
+  });
+  let lead="⚖️ Seimbang";
+  $("#stA").classList.remove("lead"); $("#stB").classList.remove("lead");
+  if(A.level===0&&B.level===0) lead="⚖️ Belum ada yang memimpin";
+  else if(A.level>B.level){ lead="👑 "+A.name+" memimpin!"; $("#stA").classList.add("lead"); }
+  else if(B.level>A.level){ lead="👑 "+B.name+" memimpin!"; $("#stB").classList.add("lead"); }
+  $("#leading").textContent=lead;
+}
+
+/* ---------- Jeda / Reset ---------- */
+function togglePause(){
+  if(!G) return;
+  if(G.state==="playing"){
+    G.state="paused"; $("#btnPause").textContent="▶ Lanjut";
+    showOverlay(`<h2>⏸ Permainan Dijeda</h2><p>Waktu dan jawaban dihentikan sementara.</p><button class="bigBtn" id="ovResume">▶ LANJUTKAN</button>`);
+    $("#ovResume").onclick=togglePause;
+  } else if(G.state==="paused"){
+    G.state="playing"; G.last=performance.now(); $("#btnPause").textContent="⏸ Jeda"; hideOverlay();
+  }
+}
+function resetGame(){ parts=[]; newGame(); }
+
+/* ---------- Selesai ---------- */
+function finishGame(winIdx){
+  G.state="ended"; $("#btnPause").disabled=true;
+  const [A,B]=G.teams;
+  // seri hanya jika kedua tim tercatat finish pada waktu yang benar-benar sama
+  G.winner = (A.finishAt!==null && B.finishAt!==null && A.finishAt===B.finishAt) ? -1 : winIdx;
+  SFX.win(); confettiShow();
+  const id=G.id;
+  setTimeout(()=>{ if(G.id===id) showEnd(); },1800);
+}
+function showEnd(){
+  const [A,B]=G.teams, w=G.winner;
+  $("#trophy").textContent = w===-1?"🤝":"🏆";
+  $("#winnerName").textContent = w===-1?"SERI! Kalian Sama-sama Hebat!":"🎉 "+G.teams[w].name+" JUARA! 🎉";
+  $("#winnerSub").textContent = w===-1?"Kedua tandon terisi penuh di waktu yang sama!":"Tandon airnya meluap lebih dulu pada waktu "+fmt(G.teams[w].finishAt);
+  const timeCell=T=> T.finishAt!==null ? "⏱ "+fmt(T.finishAt)+" (FINISH)" : "Belum finish (Level "+T.level+"/"+TARGET_LEVEL+")";
+  $("#resTable").innerHTML=`
+    <tr><th></th><th class="a">🔵 ${esc(A.name)}</th><th class="b">🟢 ${esc(B.name)}</th></tr>
+    <tr class="${w===0?"win":""}"><td>Skor akhir</td><td>${A.score}</td><td>${B.score}</td></tr>
+    <tr><td>Waktu tempuh</td><td>${timeCell(A)}</td><td>${timeCell(B)}</td></tr>
+    <tr><td>Jawaban benar</td><td>✅ ${A.benar}</td><td>✅ ${B.benar}</td></tr>
+    <tr><td>Jawaban salah</td><td>❌ ${A.salah}</td><td>❌ ${B.salah}</td></tr>`;
+  $("#resTable tr:nth-child(2)").className=""; // sorot pemenang
+  if(w>=0){ $("#resTable").rows[1].cells[w+1].style.background="#fef9c3"; $("#resTable").rows[1].cells[w+1].style.fontWeight="900"; }
+  $("#motiv").textContent=PESAN_MOTIVASI[Math.floor(Math.random()*PESAN_MOTIVASI.length)];
+  hideOverlay(); showScreen("end");
+}
+
+/* =====================================================================
+   NAVIGASI & TOMBOL
+   ===================================================================== */
+$("#devBtn").onclick=e=>{ e.stopPropagation(); $("#devPop").classList.toggle("show"); };
+document.addEventListener("click",()=>$("#devPop").classList.remove("show"));
+$("#btnStart").onclick=()=>{ ac(); showScreen("setup"); };
+$("#btnBack").onclick=()=>showScreen("intro");
+$("#btnEnter").onclick=()=>{
+  ac();
+  NAMES=[$("#nameA").value.trim()||"Tim A", $("#nameB").value.trim()||"Tim B"];
+  CFG.wrongMode=$("#wrongMode").value; CFG.useKeys=$("#useKeys").checked;
+  document.body.classList.toggle("nokeys",!CFG.useKeys);
+  showScreen("game"); newGame();
+};
+$("#btnPause").onclick=togglePause;
+$("#btnReset").onclick=resetGame;
+/* Layar penuh (masuk / keluar) */
+function toggleFull(){
+  const d=document, el=d.documentElement;
+  if(d.fullscreenElement||d.webkitFullscreenElement){ (d.exitFullscreen||d.webkitExitFullscreen).call(d); }
+  else { const f=el.requestFullscreen||el.webkitRequestFullscreen; if(f) f.call(el).catch(()=>{}); }
+}
+$("#btnFull").onclick=toggleFull; $("#fsIntro").onclick=toggleFull;
+document.addEventListener("keydown",e=>{ if(e.key==="F11"){ e.preventDefault(); toggleFull(); } });
+function syncFull(){ const on=!!(document.fullscreenElement||document.webkitFullscreenElement);
+  $("#btnFull").textContent=on?"🗗":"⛶"; $("#fsIntro").textContent=on?"🗗":"⛶"; }
+document.addEventListener("fullscreenchange",syncFull); document.addEventListener("webkitfullscreenchange",syncFull);
+$("#btnMute").onclick=()=>{ muted=!muted; $("#btnMute").textContent=muted?"🔇":"🔊"; };
+$("#btnMenu").onclick=()=>{ if(G) G.id=++gameCounter; hideOverlay(); showScreen("setup"); };
+$("#btnAgain").onclick=()=>{ parts=[]; showScreen("game"); newGame(); };
+$("#btnRename").onclick=()=>{ parts=[]; showScreen("setup"); };
+
+/* Keyboard untuk mode 1 layar: Tim A = Q W E R, Tim B = 1 2 3 4 */
+document.addEventListener("keydown",e=>{
+  if(!CFG.useKeys||!G||G.state!=="playing"||e.target.tagName==="INPUT"||e.repeat) return;
+  const k=e.key.toLowerCase();
+  const a=["q","w","e","r"].indexOf(k); if(a>-1) return answer(0,a);
+  const b=["1","2","3","4"].indexOf(k); if(b>-1) return answer(1,b);
+});
+
+/* Tetesan air dekoratif di halaman pembuka */
+(function(){ const bd=$("#bgDrops"); for(let i=0;i<14;i++){ const s=document.createElement("span"); s.textContent=i%3?"💧":"☁️";
+  s.style.left=Math.random()*100+"%"; s.style.animationDuration=(6+Math.random()*8)+"s"; s.style.animationDelay=(-Math.random()*10)+"s";
+  s.style.fontSize=(22+Math.random()*30)+"px"; bd.appendChild(s);} })();
+</script>
+</body>
+</html>
