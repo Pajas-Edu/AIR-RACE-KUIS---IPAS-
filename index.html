@@ -139,7 +139,7 @@ body.nokeys .ans .hint{display:none}
 .ans.correct{background:var(--green);border-color:#15803d;color:#fff;box-shadow:0 4px 0 #15803d;animation:pulse .5s}
 .ans.wrong{background:var(--red);border-color:#b91c1c;color:#fff;box-shadow:0 4px 0 #b91c1c;animation:shake .45s}
 .ans.reveal{background:#bbf7d0;border-color:var(--green);box-shadow:0 4px 0 #15803d;animation:pulse .5s}
-.ans.dead{opacity:.45}
+
 @keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 @keyframes pulse{50%{transform:scale(1.04)}}
 .fbMsg{position:absolute;left:0;right:0;top:38%;text-align:center;font-weight:900;font-size:clamp(28px,7vh,68px);pointer-events:none;opacity:0;z-index:6;
@@ -202,12 +202,6 @@ table.res{width:100%;border-collapse:separate;border-spacing:0 6px;margin:10px 0
       <div class="fb"><label for="nameB">🟢 Pemain / Tim B</label><input id="nameB" maxlength="18" placeholder="Tim B" autocomplete="off"></div>
     </div>
     <div class="opt">
-      <label><b>Jika jawaban salah:</b>
-        <select id="wrongMode">
-          <option value="ulang">Soal yang sama diulang sampai benar (kunci 1,2 detik)</option>
-          <option value="lanjut">Jawaban benar ditunjukkan, lalu lanjut ke soal berikutnya</option>
-        </select>
-      </label>
       <label><input type="checkbox" id="useKeys" checked> Aktifkan keyboard untuk mode 1 layar (2 pemain berbagi satu perangkat)</label>
     </div>
     <div class="note">
@@ -459,7 +453,7 @@ buildLane(0); buildLane(1);
    ===================================================================== */
 let G = null;          // data permainan berjalan
 let NAMES = ["Tim A","Tim B"];
-let CFG = { wrongMode:"ulang", useKeys:true };
+let CFG = { useKeys:true };
 let gameCounter = 0;
 
 function newGame(){
@@ -555,19 +549,25 @@ function answer(i,pos){
     if(T.level>=TARGET_LEVEL){ T.finishAt=G.elapsed; finishGame(i); return; }
     setTimeout(()=>{ if(!G||G.id!==id||G.state==="ended") return; T.qi++; renderQuestion(i); },900);
   } else {                               // ===== JAWABAN SALAH =====
+    // tanda merah muncul sekali, lalu soal langsung diganti dengan soal lain (acak)
     btn.classList.add("wrong"); T.salah++;
     SFX.wrong(); flash(i,false); refresh();
-    if(CFG.wrongMode==="lanjut"){
-      // tunjukkan jawaban benar, lalu pindah ke soal berikutnya
-      setTimeout(()=>{ if(!G||G.id!==id) return; const c=btns[T.perm.indexOf(q.jawaban)]; if(c) c.classList.add("reveal"); },1000);
-      setTimeout(()=>{ if(!G||G.id!==id||G.state==="ended") return; T.qi++; renderQuestion(i); },2300);
-    } else {
-      // soal yang sama diulang; tombol salah tetap merah & nonaktif
-      setTimeout(()=>{ if(!G||G.id!==id||G.state==="ended") return;
-        btns.forEach(b=>{ if(!b.classList.contains("wrong")) b.disabled=false; else b.classList.add("dead"); });
-        T.locked=false; },1200);
-    }
+    setTimeout(()=>{ if(!G||G.id!==id||G.state==="ended") return; swapQuestion(i); renderQuestion(i); },1000);
   }
+}
+
+/* Ganti soal tim i dengan soal lain secara acak (soal lama dipindah ke urutan belakang).
+   Diusahakan berbeda dari soal yang sedang tampil di tim lawan. */
+function swapQuestion(i){
+  const T=G.teams[i], O=G.teams[1-i], n=T.qs.length, old=T.qs[T.qi], oppQ=O.qs[O.qi % O.qs.length];
+  if(T.qi>=n-1){                         // soal terakhir: acak ulang seluruh daftar
+    let fresh=shuffle(BANK_SOAL); if(fresh[0]===old||fresh[0]===oppQ){ const k=fresh.findIndex(q=>q!==old&&q!==oppQ); if(k>0)[fresh[0],fresh[k]]=[fresh[k],fresh[0]]; }
+    T.qs=fresh; T.qi=0; return;
+  }
+  let cand=[]; for(let j=T.qi+1;j<n;j++) if(T.qs[j]!==old) cand.push(j);
+  const pref=cand.filter(j=>T.qs[j]!==oppQ); const pool=pref.length?pref:cand;
+  const j=pool[Math.floor(Math.random()*pool.length)];
+  [T.qs[T.qi],T.qs[j]]=[T.qs[j],T.qs[T.qi]];
 }
 
 /* ---------- Teks ✅ BENAR / ❌ SALAH ---------- */
@@ -662,7 +662,7 @@ $("#btnBack").onclick=()=>showScreen("intro");
 $("#btnEnter").onclick=()=>{
   ac();
   NAMES=[$("#nameA").value.trim()||"Tim A", $("#nameB").value.trim()||"Tim B"];
-  CFG.wrongMode=$("#wrongMode").value; CFG.useKeys=$("#useKeys").checked;
+  CFG.useKeys=$("#useKeys").checked;
   document.body.classList.toggle("nokeys",!CFG.useKeys);
   showScreen("game"); newGame();
 };
